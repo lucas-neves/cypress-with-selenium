@@ -1,0 +1,87 @@
+#trigger:
+#- master
+
+jobs:
+- job: Cypress_tests
+  pool:
+    vmImage: 'ubuntu-latest'
+  #strategy:
+  #  parallel: 4
+  steps:
+  - task: NodeTool@0
+    inputs:
+      versionSpec: '12.x'
+    displayName: 'Install NodeJS'
+    
+  # Pipeline cache para NPM e Cypress
+  #- task: CacheBeta@1
+  #  inputs:
+  #    key: npm | $(Agent.OS) | package-lock.json
+  #    path: /home/vsts/.npm
+  #    restoreKeys: npm | $(Agent.OS) | package-lock.json
+  #  displayName: Cache NPM Packages
+  #- task: CacheBeta@1
+  #  inputs:
+  #    key: cypress | $(Agent.OS) | package-lock.json
+  #    path: /home/vsts/.cache/Cypress
+  #    restoreKeys: cypress | $(Agent.OS) | package-lock.json
+  #  displayName: Cache Cypress binary
+
+  - script: npm install
+    displayName: 'Install NPM dependencies'
+
+  - script: npm run lint
+    displayName: 'Check code style'
+    continueOnError: true
+
+  - script: npm run test:hml
+    displayName: 'Running Cypress tests'
+    continueOnError: true
+    
+  - task: PublishPipelineArtifact@0
+    inputs:
+      targetPath: 'cypress/screenshots'
+      artifactName: 'Screenshots_$(System.JobDisplayName)'
+    condition: failed()
+    displayName: 'Publish Screenshots (Cypress)'
+
+  - task: PublishPipelineArtifact@0
+    inputs:
+      targetPath: 'cypress/videos'
+      artifactName: 'Videos-$(System.JobDisplayName)'
+    condition: succeededOrFailed()
+    displayName: 'Publish Videos (Cypress)'
+
+  #- task: PublishTestResults@2
+  #  inputs:
+  #    testRunner: JUnit
+  #    testResultsFiles: '$(Build.SourcesDirectory)/allure-results/junit/junit*.xml'
+  #    mergeTestResults: true
+  #    testRunTitle: 'Cypress Test Results'
+  #    publishRunAttachments: true
+  #  condition: succeededOrFailed()
+  #  continueOnError: true
+
+  - script: |
+      echo '------- CURRENT DIRECTORY -------'
+      pwd
+      echo '------- DIRECTORIES -------'
+      ls
+      echo '------- ALLURE DIRECTORY -------'
+      ls allure-results/
+    displayName: 'Listing directories'
+    continueOnError: true
+
+  #- task: AllureGenerate@1
+  #  inputs:
+  #    resultsDir: 'allure-results'
+  #    targetDir: 'allure-report/$(Build.BuildNumber)'
+  #  continueOnError: true
+
+schedules:
+- cron: '0 11 * * *'
+  displayName: UTC-3 8h Weekly build
+  branches:
+    include:
+    - master
+  always: true

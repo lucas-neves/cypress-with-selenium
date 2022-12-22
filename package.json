@@ -1,0 +1,8 @@
+{
+  "devDependencies": {
+    "chromedriver": "^106.0.1",
+    "cypress": "^10.9.0",
+    "faker-br": "^0.4.1",
+    "selenium-webdriver": "^4.5.0"
+  }
+}
